@@ -1,21 +1,25 @@
 import json
-from pathlib import Path
 
-from src.datalake import write_channel_messages_json, write_manifest
+from src.datalake import (
+    write_channel_messages_json,
+    write_manifest,
+)
 
 
 def test_write_channel_messages_json(tmp_path):
+    """Test writing channel messages to the data lake."""
+
     messages = [
         {
             "message_id": 1,
             "channel_name": "testchannel",
             "channel_title": "Test Channel",
             "message_date": "2026-06-28T10:00:00",
-            "message_text": "Hello",
+            "message_text": "Hello World",
             "has_media": False,
             "image_path": None,
-            "views": 10,
-            "forwards": 2,
+            "views": 100,
+            "forwards": 5,
         }
     ]
 
@@ -26,7 +30,7 @@ def test_write_channel_messages_json(tmp_path):
         messages=messages,
     )
 
-    output = (
+    output_file = (
         tmp_path
         / "raw"
         / "telegram_messages"
@@ -34,16 +38,20 @@ def test_write_channel_messages_json(tmp_path):
         / "testchannel.json"
     )
 
-    assert output.exists()
+    assert output_file.exists()
 
-    with open(output, encoding="utf-8") as f:
+    with open(output_file, encoding="utf-8") as f:
         data = json.load(f)
 
     assert len(data) == 1
     assert data[0]["channel_name"] == "testchannel"
+    assert data[0]["message_text"] == "Hello World"
+    assert data[0]["views"] == 100
 
 
 def test_write_manifest(tmp_path):
+    """Test writing the daily manifest file."""
+
     counts = {
         "channel1": 10,
         "channel2": 5,
@@ -55,17 +63,20 @@ def test_write_manifest(tmp_path):
         channel_message_counts=counts,
     )
 
-    manifest = (
+    manifest_file = (
         tmp_path
         / "raw"
         / "telegram_messages"
         / "2026-06-28"
-        / "manifest.json"
+        / "_manifest.json"
     )
 
-    assert manifest.exists()
+    assert manifest_file.exists()
 
-    with open(manifest, encoding="utf-8") as f:
+    with open(manifest_file, encoding="utf-8") as f:
         data = json.load(f)
 
-    assert data["channel_message_counts"] == counts
+    assert data["date"] == "2026-06-28"
+    assert data["channels"] == counts
+    assert data["total_messages"] == 15
+    assert "run_utc" in data
